@@ -1,0 +1,50 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-mutating-webhook
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    app: pod-mutating-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-mutating-webhook
+  labels:
+    app: pod-mutating-webhook
+spec:
+  replicas: {{ .Values.deploy.replicas }}
+  selector:
+    matchLabels:
+      app: pod-mutating-webhook
+  template:
+    metadata:
+      name: pod-mutating-webhook
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/tls-secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+      labels:
+        app: pod-mutating-webhook
+    spec:
+      containers:
+      - name: pod-mutating-webhook
+        image: {{ .Values.deploy.image }}:{{.Values.deploy.tag }}
+        imagePullPolicy: {{ .Values.deploy.pullPolicy }}
+        volumeMounts:
+          - mountPath: /etc/webhook/certs
+            name: webhook-tls-secrets
+            readOnly: true
+          - mountPath: /tmp
+            name: image-rules
+            readOnly: true
+      volumes:
+        - name: webhook-tls-secrets
+          secret:
+            secretName: webhook-tls-secrets
+        - name: image-rules
+          configMap:
+            name: image-rules

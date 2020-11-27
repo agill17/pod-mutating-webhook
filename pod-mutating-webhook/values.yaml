@@ -1,0 +1,9 @@
+deploy:
+  image: agill17/pod-mutating-webhook
+  tag: 0.2.0
+  replicas: 1
+  pullPolicy: Always
+
+imageRules: |
+  "mysql:latest": "mysql:5.7"
+  "minio/minio:latest": "minio/minio:release"
