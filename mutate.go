@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,29 +38,27 @@ func (m *MutateContainerImage) MutateContainerImages(reqBody []byte, imageRules 
 
 	var patches []map[string]string
 
-	for oldImage, newImage := range imageRules {
-
-		for idx, cont := range podObj.Spec.Containers {
-			if cont.Image == oldImage {
-				p := map[string]string{
-					"op":    "replace",
-					"path":  fmt.Sprintf("/spec/containers/%d/image", idx),
-					"value": newImage,
-				}
-				m.logger.Info(fmt.Sprintf("%v changing image from %v to %v", namespacedName, cont.Image, newImage))
-				patches = append(patches, p)
+	for idx, cont := range podObj.Spec.Containers {
+		if val, ok := imageRules[cont.Image]; ok && val != "" {
+			p := map[string]string{
+				"op":    "replace",
+				"path":  fmt.Sprintf("/spec/containers/%d/image", idx),
+				"value": val,
 			}
+			m.logger.Info(fmt.Sprintf("%v changing image from %v to %v", namespacedName, cont.Image, val))
+			patches = append(patches, p)
 		}
-		for idx, initCont := range podObj.Spec.InitContainers {
-			if initCont.Image == oldImage {
-				p := map[string]string{
-					"op":    "replace",
-					"path":  fmt.Sprintf("/spec/initContainers/%d/image", idx),
-					"value": newImage,
-				}
-				m.logger.Info(fmt.Sprintf("%v changing image from %v to %v", namespacedName, initCont.Image, newImage))
-				patches = append(patches, p)
+
+	}
+	for idx, initCont := range podObj.Spec.InitContainers {
+		if val, ok := imageRules[initCont.Image]; ok && val != "" {
+			p := map[string]string{
+				"op":    "replace",
+				"path":  fmt.Sprintf("/spec/initContainers/%d/image", idx),
+				"value": val,
 			}
+			m.logger.Info(fmt.Sprintf("%v changing image from %v to %v", namespacedName, initCont.Image, val))
+			patches = append(patches, p)
 		}
 	}
 

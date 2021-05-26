@@ -1,4 +1,4 @@
-VERSION ?= 0.2.0
+VERSION ?= 0.2.1
 IMG=agill17/pod-mutating-webhook:${VERSION}
 
 build: docker-build docker-push
